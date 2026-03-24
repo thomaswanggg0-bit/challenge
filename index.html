@@ -36,6 +36,8 @@
     .btn-start:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(239,68,68,0.3); }
     .firebase-banner { background: #1a1a2e; border: 1px solid #3730a3; border-radius: 10px; padding: 14px 18px; font-size: 0.82rem; color: #94a3b8; display: flex; align-items: center; gap: 10px; }
     .firebase-banner.connected { border-color: #166534; background: #0d1f0d; color: #86efac; }
+    .name-error { font-size: 0.8rem; color: #f87171; margin-top: 8px; display: none; padding-left: 4px; }
+    .name-input.invalid { border-color: #ef4444; box-shadow: 0 0 0 3px rgba(239,68,68,0.15); }
     .firebase-dot { width: 8px; height: 8px; border-radius: 50%; background: #64748b; flex-shrink: 0; }
     .firebase-dot.connected { background: #22c55e; animation: blink 1.5s infinite; }
     @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.4} }
@@ -153,6 +155,7 @@
     <input class="name-input" id="player-name" type="text" maxlength="20" data-placeholder-fr="Ton pseudo..." data-placeholder-en="Your nickname..." placeholder="Ton pseudo..."/>
     <button class="btn-start" onclick="startChallenge()" data-i18n="start">⚡ Démarrer</button>
   </div>
+  <div class="name-error" id="name-error">⚠️ Entre un pseudo pour continuer !</div>
   <div class="firebase-banner" id="firebase-banner" onclick="openModal()">
     <div class="firebase-dot" id="firebase-dot"></div>
     <span id="firebase-status" data-i18n="local-mode">Mode local — Clique ici pour activer le classement mondial 🌍</span>
@@ -437,7 +440,18 @@ async function getScores() {
 function shuffle(arr) { return [...arr].sort(()=>Math.random()-0.5); }
 
 function startChallenge() {
-  playerName = document.getElementById('player-name').value.trim() || (lang==='en'?'Anonymous':'Anonyme');
+  const input = document.getElementById('player-name');
+  const error = document.getElementById('name-error');
+  playerName = input.value.trim();
+  if (!playerName) {
+    input.classList.add('invalid');
+    error.textContent = lang==='en' ? '⚠️ Please enter a nickname to continue!' : '⚠️ Entre un pseudo pour continuer !';
+    error.style.display = 'block';
+    input.focus();
+    return;
+  }
+  input.classList.remove('invalid');
+  error.style.display = 'none';
   questions = shuffle(QUESTIONS).slice(0, 20);
   currentQ = 0; score = 0; correctCount = 0; answered = [];
   startTime = Date.now();
@@ -582,6 +596,10 @@ function showScreen(id) {
 // ── INIT ─────────────────────────────────────────────────
 setLang(lang);
 document.getElementById('player-name').addEventListener('keydown', e=>{ if(e.key==='Enter') startChallenge(); });
+document.getElementById('player-name').addEventListener('input', ()=>{
+  document.getElementById('player-name').classList.remove('invalid');
+  document.getElementById('name-error').style.display='none';
+});
 </script>
 </body>
 </html>
