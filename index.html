@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>⚡ Challenge Mode</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: #07070f; color: #e2e8f0; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
+
+    /* LANG */
+    .lang-toggle { position: fixed; top: 16px; right: 16px; display: flex; background: #13132a; border: 1px solid #3730a3; border-radius: 8px; overflow: hidden; z-index: 100; }
+    .lang-btn { padding: 6px 12px; font-size: 0.8rem; font-weight: 700; cursor: pointer; border: none; background: transparent; color: #64748b; }
+    .lang-btn.active { background: #4f46e5; color: white; }
+
+    /* SCREENS */
+    .screen { display: none; width: 100%; max-width: 700px; animation: fadeIn 0.3s ease; }
+    .screen.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* WELCOME */
+    .welcome-hero { text-align: center; margin-bottom: 36px; }
+    .welcome-icon { font-size: 4rem; margin-bottom: 16px; display: block; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+    .welcome-title { font-size: 2.4rem; font-weight: 900; background: linear-gradient(135deg, #f59e0b, #ef4444, #8b5cf6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 10px; }
+    .welcome-sub { color: #64748b; font-size: 1rem; }
+    .rules { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 28px; }
+    .rule-card { background: #0f0f1e; border: 1px solid #1e1b4b; border-radius: 12px; padding: 16px; text-align: center; }
+    .rule-icon { font-size: 1.6rem; margin-bottom: 8px; display: block; }
+    .rule-title { font-size: 0.78rem; font-weight: 700; color: #a5b4fc; margin-bottom: 4px; }
+    .rule-desc { font-size: 0.72rem; color: #64748b; }
+    .name-input-zone { display: flex; gap: 12px; margin-bottom: 16px; }
+    .name-input { flex: 1; padding: 14px 18px; background: #0f0f1e; border: 1px solid #3730a3; border-radius: 10px; color: #e2e8f0; font-size: 1rem; outline: none; }
+    .name-input:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.15); }
+    .btn-start { padding: 14px 32px; background: linear-gradient(135deg, #f59e0b, #ef4444); border: none; border-radius: 10px; color: white; font-size: 1rem; font-weight: 800; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
+    .btn-start:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(239,68,68,0.3); }
+    .firebase-banner { background: #1a1a2e; border: 1px solid #3730a3; border-radius: 10px; padding: 14px 18px; font-size: 0.82rem; color: #94a3b8; display: flex; align-items: center; gap: 10px; }
+    .firebase-banner.connected { border-color: #166534; background: #0d1f0d; color: #86efac; }
+    .firebase-dot { width: 8px; height: 8px; border-radius: 50%; background: #64748b; flex-shrink: 0; }
+    .firebase-dot.connected { background: #22c55e; animation: blink 1.5s infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+    /* QUIZ */
+    .quiz-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+    .progress-info { font-size: 0.85rem; color: #64748b; font-weight: 600; }
+    .timer { background: #0f0f1e; border: 1px solid #1e1b4b; border-radius: 10px; padding: 8px 18px; font-size: 1.1rem; font-weight: 800; font-family: monospace; color: #f59e0b; }
+    .timer.warning { color: #ef4444; animation: shake 0.3s; }
+    @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-4px)} 75%{transform:translateX(4px)} }
+    .progress-bar-quiz { height: 4px; background: #1e1b4b; border-radius: 2px; margin-bottom: 24px; }
+    .progress-bar-fill { height: 100%; background: linear-gradient(90deg, #f59e0b, #ef4444); border-radius: 2px; transition: width 0.3s; }
+    .topic-badge { display: inline-block; padding: 4px 12px; border-radius: 999px; font-size: 0.72rem; font-weight: 700; margin-bottom: 14px; }
+    .topic-python { background: #1e1b4b; color: #a5b4fc; }
+    .topic-excel  { background: #14532d; color: #86efac; }
+    .topic-sql    { background: #0c1a3a; color: #93c5fd; }
+    .question-card { background: #0f0f1e; border: 1px solid #1e1b4b; border-radius: 16px; padding: 28px; margin-bottom: 20px; }
+    .question-text { font-size: 1.05rem; font-weight: 600; line-height: 1.6; }
+    .options { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .option-btn { padding: 14px 16px; background: #0a0a16; border: 1px solid #1e1b4b; border-radius: 10px; color: #e2e8f0; font-size: 0.88rem; cursor: pointer; transition: all 0.2s; text-align: left; font-family: inherit; }
+    .option-btn:hover:not(:disabled) { background: #1e1b4b; border-color: #4f46e5; }
+    .option-btn.correct { background: #166534; border-color: #4ade80; color: #86efac; animation: pop 0.3s; }
+    .option-btn.wrong   { background: #7f1d1d; border-color: #f87171; color: #fca5a5; }
+    @keyframes pop { 0%{transform:scale(1)} 50%{transform:scale(1.03)} 100%{transform:scale(1)} }
+    .option-btn:disabled { cursor: default; }
+    .score-bar { display: flex; gap: 6px; margin-bottom: 8px; }
+    .score-dot { width: 10px; height: 10px; border-radius: 50%; background: #1e1b4b; transition: all 0.3s; }
+    .score-dot.correct { background: #22c55e; }
+    .score-dot.wrong   { background: #ef4444; }
+
+    /* RESULTS */
+    .results-hero { text-align: center; margin-bottom: 28px; }
+    .results-icon { font-size: 3.5rem; margin-bottom: 12px; display: block; }
+    .results-title { font-size: 1.8rem; font-weight: 900; margin-bottom: 6px; }
+    .score-display { font-size: 3.5rem; font-weight: 900; background: linear-gradient(135deg, #f59e0b, #ef4444); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .score-label { font-size: 0.82rem; color: #64748b; margin-top: 4px; }
+    .stats-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 24px; }
+    .stat-card { background: #0f0f1e; border: 1px solid #1e1b4b; border-radius: 12px; padding: 16px; text-align: center; }
+    .stat-val { font-size: 1.5rem; font-weight: 800; color: #fff; }
+    .stat-lbl { font-size: 0.72rem; color: #64748b; margin-top: 3px; }
+    .btn-retry { width: 100%; padding: 14px; background: linear-gradient(135deg, #f59e0b, #ef4444); border: none; border-radius: 10px; color: white; font-size: 1rem; font-weight: 800; cursor: pointer; margin-bottom: 12px; transition: all 0.2s; }
+    .btn-retry:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(239,68,68,0.3); }
+    .btn-secondary { width: 100%; padding: 12px; background: transparent; border: 1px solid #1e1b4b; border-radius: 10px; color: #64748b; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+    .btn-secondary:hover { border-color: #3730a3; color: #a5b4fc; }
+
+    /* LEADERBOARD */
+    .lb-header { text-align: center; margin-bottom: 24px; }
+    .lb-title { font-size: 1.5rem; font-weight: 900; margin-bottom: 4px; }
+    .lb-subtitle { font-size: 0.85rem; color: #64748b; }
+    .lb-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+    .lb-table th { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #475569; padding: 8px 12px; text-align: left; border-bottom: 1px solid #1e1b4b; }
+    .lb-table td { padding: 12px; border-bottom: 1px solid #0f0f1e; font-size: 0.88rem; }
+    .lb-table tr:hover td { background: #0f0f1e; }
+    .lb-rank { font-weight: 800; font-size: 1rem; width: 40px; }
+    .lb-rank.gold   { color: #f59e0b; }
+    .lb-rank.silver { color: #94a3b8; }
+    .lb-rank.bronze { color: #b45309; }
+    .lb-name { font-weight: 600; }
+    .lb-score { font-weight: 800; color: #f59e0b; }
+    .lb-time { color: #64748b; font-family: monospace; }
+    .lb-correct { color: #86efac; }
+    .lb-topic { display: flex; gap: 4px; }
+    .lb-dot { width: 6px; height: 6px; border-radius: 50%; }
+    .lb-my-row td { background: #1e1b4b !important; }
+    .empty-lb { text-align: center; padding: 40px; color: #475569; font-size: 0.9rem; }
+    .loading-lb { text-align: center; padding: 24px; color: #64748b; }
+
+    /* FIREBASE SETUP MODAL */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 200; align-items: center; justify-content: center; padding: 20px; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: #0f0f1e; border: 1px solid #1e1b4b; border-radius: 16px; padding: 28px; max-width: 560px; width: 100%; max-height: 90vh; overflow-y: auto; }
+    .modal h3 { font-size: 1.2rem; font-weight: 800; margin-bottom: 6px; }
+    .modal p { font-size: 0.85rem; color: #94a3b8; margin-bottom: 16px; line-height: 1.6; }
+    .steps { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; }
+    .step { display: flex; gap: 12px; align-items: flex-start; }
+    .step-num { width: 26px; height: 26px; border-radius: 50%; background: #4f46e5; color: white; font-size: 0.75rem; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+    .step-text { font-size: 0.83rem; color: #94a3b8; line-height: 1.6; }
+    .step-text a { color: #6366f1; text-decoration: none; }
+    .step-text a:hover { text-decoration: underline; }
+    .step-text code { background: #1e1b4b; padding: 1px 5px; border-radius: 4px; font-family: monospace; color: #a5b4fc; font-size: 0.85em; }
+    .url-input { width: 100%; padding: 12px 14px; background: #0a0a16; border: 1px solid #3730a3; border-radius: 8px; color: #e2e8f0; font-family: monospace; font-size: 0.85rem; outline: none; margin-bottom: 10px; }
+    .url-input:focus { border-color: #6366f1; }
+    .modal-btns { display: flex; gap: 10px; }
+    .btn-save { flex: 1; padding: 11px; background: #4f46e5; border: none; border-radius: 8px; color: white; font-weight: 700; cursor: pointer; }
+    .btn-save:hover { background: #6366f1; }
+    .btn-cancel { padding: 11px 20px; background: transparent; border: 1px solid #1e1b4b; border-radius: 8px; color: #64748b; cursor: pointer; }
+
+    @media (max-width: 600px) {
+      .rules { grid-template-columns: 1fr; }
+      .options { grid-template-columns: 1fr; }
+      .stats-row { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="lang-toggle">
+  <button class="lang-btn active" onclick="setLang('fr')">🇫🇷</button>
+  <button class="lang-btn" onclick="setLang('en')">🇬🇧</button>
+</div>
+
+<!-- WELCOME -->
+<div class="screen active" id="screen-welcome">
+  <div class="welcome-hero">
+    <span class="welcome-icon">⚡</span>
+    <div class="welcome-title" data-i18n="title">Challenge Mode</div>
+    <div class="welcome-sub" data-i18n="welcome-sub">20 questions · Python + Excel + SQL · Chrono</div>
+  </div>
+  <div class="rules">
+    <div class="rule-card"><span class="rule-icon">🎯</span><div class="rule-title">20 <span data-i18n="questions">Questions</span></div><div class="rule-desc" data-i18n="rule1">Mélangées Python, Excel & SQL</div></div>
+    <div class="rule-card"><span class="rule-icon">⏱️</span><div class="rule-title" data-i18n="chrono">Chrono</div><div class="rule-desc" data-i18n="rule2">Plus vite = plus de points bonus</div></div>
+    <div class="rule-card"><span class="rule-icon">🏆</span><div class="rule-title" data-i18n="ranking">Classement</div><div class="rule-desc" data-i18n="rule3">Compare ton score mondial</div></div>
+  </div>
+  <div class="name-input-zone">
+    <input class="name-input" id="player-name" type="text" maxlength="20" data-placeholder-fr="Ton pseudo..." data-placeholder-en="Your nickname..." placeholder="Ton pseudo..."/>
+    <button class="btn-start" onclick="startChallenge()" data-i18n="start">⚡ Démarrer</button>
+  </div>
+  <div class="firebase-banner" id="firebase-banner" onclick="openModal()">
+    <div class="firebase-dot" id="firebase-dot"></div>
+    <span id="firebase-status" data-i18n="local-mode">Mode local — Clique ici pour activer le classement mondial 🌍</span>
+  </div>
+</div>
+
+<!-- QUIZ -->
+<div class="screen" id="screen-quiz">
+  <div class="quiz-header">
+    <div>
+      <div class="score-bar" id="score-bar"></div>
+      <div class="progress-info"><span id="q-current">1</span> / <span id="q-total">20</span> <span data-i18n="questions">questions</span></div>
+    </div>
+    <div class="timer" id="timer">00:00</div>
+  </div>
+  <div class="progress-bar-quiz"><div class="progress-bar-fill" id="quiz-progress-fill" style="width:0%"></div></div>
+  <div id="topic-badge" class="topic-badge"></div>
+  <div class="question-card">
+    <div class="question-text" id="question-text"></div>
+  </div>
+  <div class="options" id="options-grid"></div>
+</div>
+
+<!-- RESULTS -->
+<div class="screen" id="screen-results">
+  <div class="results-hero">
+    <span class="results-icon" id="results-icon">🏆</span>
+    <div class="results-title" id="results-title" data-i18n="result-title">Résultat final</div>
+    <div class="score-display" id="final-score">0</div>
+    <div class="score-label" data-i18n="score-label">points</div>
+  </div>
+  <div class="stats-row">
+    <div class="stat-card"><div class="stat-val" id="stat-correct">0/20</div><div class="stat-lbl" data-i18n="correct-answers">Bonnes réponses</div></div>
+    <div class="stat-card"><div class="stat-val" id="stat-time">0s</div><div class="stat-lbl" data-i18n="total-time">Temps total</div></div>
+    <div class="stat-card"><div class="stat-val" id="stat-rank">#?</div><div class="stat-lbl" data-i18n="your-rank">Ton classement</div></div>
+  </div>
+  <button class="btn-retry" onclick="retry()" data-i18n="retry">🔄 Réessayer</button>
+  <button class="btn-secondary" onclick="showLeaderboard()" data-i18n="see-ranking">🏆 Voir le classement complet</button>
+</div>
+
+<!-- LEADERBOARD -->
+<div class="screen" id="screen-leaderboard">
+  <div class="lb-header">
+    <div class="lb-title">🏆 <span data-i18n="leaderboard">Classement</span></div>
+    <div class="lb-subtitle" id="lb-subtitle" data-i18n="lb-sub">Les meilleurs joueurs du monde</div>
+  </div>
+  <table class="lb-table">
+    <thead><tr>
+      <th>#</th>
+      <th data-i18n="player">Joueur</th>
+      <th data-i18n="score">Score</th>
+      <th data-i18n="time">Temps</th>
+      <th data-i18n="correct">Correct</th>
+    </tr></thead>
+    <tbody id="lb-body"><tr><td colspan="5" class="loading-lb">⏳ Chargement...</td></tr></tbody>
+  </table>
+  <button class="btn-retry" onclick="retry()" data-i18n="retry">🔄 Rejouer</button>
+  <button class="btn-secondary" onclick="showScreen('screen-welcome')" data-i18n="back-home">← Retour à l'accueil</button>
+</div>
+
+<!-- FIREBASE MODAL -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <h3>🌍 <span data-i18n="activate-global">Activer le classement mondial</span></h3>
+    <p data-i18n="modal-desc">Configure Firebase gratuitement pour voir les scores de tous les joueurs en temps réel.</p>
+    <div class="steps">
+      <div class="step"><div class="step-num">1</div><div class="step-text">Va sur <a href="https://console.firebase.google.com" target="_blank">console.firebase.google.com</a> → <strong>Créer un projet</strong></div></div>
+      <div class="step"><div class="step-num">2</div><div class="step-text">Dans ton projet → <strong>Build</strong> → <strong>Realtime Database</strong> → <strong>Create Database</strong> (mode test)</div></div>
+      <div class="step"><div class="step-num">3</div><div class="step-text">Copie l'URL de ta base (ex: <code>https://mon-projet-xxx.firebaseio.com</code>)</div></div>
+      <div class="step"><div class="step-num">4</div><div class="step-text">Colle-la ci-dessous et clique Enregistrer</div></div>
+    </div>
+    <input class="url-input" id="firebase-url-input" placeholder="https://mon-projet-xxx.firebaseio.com" type="url"/>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal()" data-i18n="cancel">Annuler</button>
+      <button class="btn-save" onclick="saveFirebaseUrl()" data-i18n="save">✓ Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── TRANSLATIONS ────────────────────────────────────────
+const UI = {
+  fr: {
+    title:'Challenge Mode', 'welcome-sub':'20 questions · Python + Excel + SQL · Chrono',
+    questions:'questions', chrono:'Chrono', ranking:'Classement',
+    rule1:'Mélangées Python, Excel & SQL', rule2:'Plus vite = plus de points bonus', rule3:'Compare ton score mondial',
+    start:'⚡ Démarrer', 'local-mode':'Mode local — Clique ici pour activer le classement mondial 🌍',
+    'global-mode':'🌍 Classement mondial activé !',
+    'result-title':'Résultat final', 'score-label':'points',
+    'correct-answers':'Bonnes réponses', 'total-time':'Temps total', 'your-rank':'Ton classement',
+    retry:'🔄 Réessayer', 'see-ranking':'🏆 Voir le classement complet',
+    leaderboard:'Classement', 'lb-sub':'Les meilleurs joueurs du monde',
+    player:'Joueur', score:'Score', time:'Temps', correct:'Correct',
+    'back-home':'← Retour à l\'accueil',
+    'activate-global':'Activer le classement mondial',
+    'modal-desc':'Configure Firebase gratuitement pour voir les scores de tous les joueurs en temps réel.',
+    cancel:'Annuler', save:'✓ Enregistrer',
+    topics: { python:'🐍 Python', excel:'📊 Excel', sql:'🗄️ SQL' },
+    next:'Question suivante →', well:'✓ Bonne réponse !', wrong:'✗ Mauvaise réponse',
+    perfect:'🔥 Parfait !', great:'💪 Excellent !', good:'👍 Bien joué !', ok:'📚 Continue comme ça !',
+    'no-scores':'Aucun score pour l\'instant. Sois le premier !'
+  },
+  en: {
+    title:'Challenge Mode', 'welcome-sub':'20 questions · Python + Excel + SQL · Timer',
+    questions:'questions', chrono:'Timer', ranking:'Ranking',
+    rule1:'Mixed Python, Excel & SQL', rule2:'Faster = more bonus points', rule3:'Compare your global score',
+    start:'⚡ Start', 'local-mode':'Local mode — Click here to activate global leaderboard 🌍',
+    'global-mode':'🌍 Global leaderboard active!',
+    'result-title':'Final Result', 'score-label':'points',
+    'correct-answers':'Correct answers', 'total-time':'Total time', 'your-rank':'Your rank',
+    retry:'🔄 Play again', 'see-ranking':'🏆 View full leaderboard',
+    leaderboard:'Leaderboard', 'lb-sub':'The best players worldwide',
+    player:'Player', score:'Score', time:'Time', correct:'Correct',
+    'back-home':'← Back to home',
+    'activate-global':'Activate global leaderboard',
+    'modal-desc':'Set up Firebase for free to see all players\' scores in real time.',
+    cancel:'Cancel', save:'✓ Save',
+    topics: { python:'🐍 Python', excel:'📊 Excel', sql:'🗄️ SQL' },
+    next:'Next question →', well:'✓ Correct!', wrong:'✗ Wrong answer',
+    perfect:'🔥 Perfect!', great:'💪 Excellent!', good:'👍 Well done!', ok:'📚 Keep it up!',
+    'no-scores':'No scores yet. Be the first!'
+  }
+};
+
+// ── QUESTIONS ────────────────────────────────────────────
+const QUESTIONS = [
+  // PYTHON
+  { topic:'python', fr:'Que retourne `len([1, 2, 3, 4, 5])` ?', en:'What does `len([1, 2, 3, 4, 5])` return?',
+    options:['3','5','4','6'], answer:1 },
+  { topic:'python', fr:'Quel opérateur est le modulo en Python ?', en:'Which operator is modulo in Python?',
+    options:['//','**','%','&'], answer:2 },
+  { topic:'python', fr:'Laquelle est une list comprehension valide ?', en:'Which is a valid list comprehension?',
+    options:['(x for x in range(5))','[x*2 for x in range(5)]','{x in range(5)}','list x in range(5)'], answer:1 },
+  { topic:'python', fr:'Que retourne `"hello".upper()` ?', en:'What does `"hello".upper()` return?',
+    options:['"HELLO"','"hello"','"Hello"','Error'], answer:0 },
+  { topic:'python', fr:'Comment accéder au dernier élément d\'une liste `lst` ?', en:'How do you access the last element of a list `lst`?',
+    options:['lst[0]','lst[-1]','lst[last]','lst.end()'], answer:1 },
+  { topic:'python', fr:'Que fait `range(3)` ?', en:'What does `range(3)` produce?',
+    options:['1, 2, 3','0, 1, 2, 3','0, 1, 2','1, 2'], answer:2 },
+  { topic:'python', fr:'Quel mot-clé définit une fonction en Python ?', en:'Which keyword defines a function in Python?',
+    options:['function','func','define','def'], answer:3 },
+  { topic:'python', fr:'Que fait `.split()` sur une chaîne ?', en:'What does `.split()` do on a string?',
+    options:['Supprime les espaces','Divise en liste selon les espaces','Coupe le dernier caractère','Trie les lettres'],
+    answer_fr:1, answer_en:1, answer:1 },
+  { topic:'python', fr:'Quel type représente `3.14` en Python ?', en:'What type is `3.14` in Python?',
+    options:['int','double','float','decimal'], answer:2 },
+  { topic:'python', fr:'Comment inverser la liste `lst = [1,2,3]` ?', en:'How do you reverse the list `lst = [1,2,3]`?',
+    options:['lst.reverse_list()','reversed(lst)','lst[::-1]','lst.flip()'], answer:2 },
+
+  // EXCEL
+  { topic:'excel', fr:'Quelle formule calcule la somme de A1 à A10 ?', en:'Which formula sums cells A1 to A10?',
+    options:['=SUM(A1,A10)','=TOTAL(A1:A10)','=SUM(A1:A10)','=ADD(A1:A10)'], answer:2 },
+  { topic:'excel', fr:'À quoi sert le `$` dans `$A$1` ?', en:'What does `$` do in `$A$1`?',
+    options:['Indique un prix','Rend la référence absolue','Verrouille la feuille','Multiplie par un dollar'],
+    answer:1 },
+  { topic:'excel', fr:'Que retourne `=IF(5>3, "Oui", "Non")` ?', en:'What does `=IF(5>3, "Yes", "No")` return?',
+    options:['"Non"','"Oui"','5','Error'], answer:1 },
+  { topic:'excel', fr:'VLOOKUP cherche les données dans…', en:'VLOOKUP searches for data in…',
+    options:['N\'importe quelle colonne','La dernière colonne','La première colonne du tableau','Les lignes horizontalement'],
+    answer:2 },
+  { topic:'excel', fr:'Que fait `=COUNTIF(A1:A10, ">5")` ?', en:'What does `=COUNTIF(A1:A10, ">5")` do?',
+    options:['Somme les valeurs > 5','Compte les cellules avec valeur > 5','Filtre les valeurs > 5','Retourne la moyenne'],
+    answer:1 },
+  { topic:'excel', fr:'Quelle formule calcule la moyenne de B2:B10 ?', en:'Which formula calculates the average of B2:B10?',
+    options:['=MEAN(B2:B10)','=AVERAGE(B2:B10)','=AVG(B2:B10)','=MEDIAN(B2:B10)'], answer:1 },
+  { topic:'excel', fr:'Que signifie l\'erreur `#N/A` dans VLOOKUP ?', en:'What does the `#N/A` error mean in VLOOKUP?',
+    options:['Formule incorrecte','Division par zéro','Valeur non trouvée','Référence invalide'], answer:2 },
+  { topic:'excel', fr:'Quelle est la différence principale entre INDEX/MATCH et VLOOKUP ?', en:'What is the main advantage of INDEX/MATCH over VLOOKUP?',
+    options:['INDEX/MATCH est plus rapide','INDEX/MATCH peut chercher à gauche','VLOOKUP est plus précis','Aucune différence'],
+    answer:1 },
+
+  // SQL
+  { topic:'sql', fr:'Quel mot-clé filtre les lignes dans une requête SQL ?', en:'Which keyword filters rows in a SQL query?',
+    options:['FILTER','HAVING','WHERE','LIMIT'], answer:2 },
+  { topic:'sql', fr:'Que fait `GROUP BY` dans une requête SQL ?', en:'What does `GROUP BY` do in SQL?',
+    options:['Trie les résultats','Regroupe les lignes par valeur','Filtre les doublons','Fusionne deux tables'],
+    answer:1 },
+  { topic:'sql', fr:'Quelle est la différence entre WHERE et HAVING ?', en:'What is the difference between WHERE and HAVING?',
+    options:['Aucune différence','WHERE filtre les lignes, HAVING filtre les groupes','HAVING filtre les lignes, WHERE filtre les groupes','WHERE est plus rapide'],
+    answer:1 },
+  { topic:'sql', fr:'`JOIN` sans précision est équivalent à…', en:'A `JOIN` without specification is equivalent to…',
+    options:['LEFT JOIN','RIGHT JOIN','INNER JOIN','CROSS JOIN'], answer:2 },
+  { topic:'sql', fr:'Que retourne `COUNT(*)` ?', en:'What does `COUNT(*)` return?',
+    options:['La somme de toutes les valeurs','Le nombre de colonnes','Le nombre de lignes','La valeur maximale'],
+    answer:2 },
+  { topic:'sql', fr:'Comment trier les résultats par ordre décroissant ?', en:'How do you sort results in descending order?',
+    options:['ORDER BY col ASC','SORT BY col DESC','ORDER BY col DESC','ORDER col REVERSE'],
+    answer:2 },
+  { topic:'sql', fr:'Que fait `DISTINCT` dans une requête SELECT ?', en:'What does `DISTINCT` do in a SELECT query?',
+    options:['Trie les résultats','Élimine les doublons','Compte les lignes uniques','Filtre les NULL'],
+    answer:1 },
+  { topic:'sql', fr:'`LEFT JOIN` retourne…', en:'`LEFT JOIN` returns…',
+    options:['Seulement les lignes communes','Toutes les lignes de la table gauche même sans correspondance','Toutes les lignes des deux tables','Seulement les lignes sans correspondance'],
+    answer:1 },
+];
+
+// ── STATE ────────────────────────────────────────────────
+let lang = localStorage.getItem('lang') || 'fr';
+let playerName = '';
+let questions = [];
+let currentQ = 0;
+let score = 0;
+let correctCount = 0;
+let startTime = null;
+let elapsedSeconds = 0;
+let timerInterval = null;
+let answered = [];
+let myEntry = null;
+let firebaseUrl = localStorage.getItem('firebase_url') || '';
+
+// ── LANG ─────────────────────────────────────────────────
+function setLang(l) {
+  lang = l;
+  localStorage.setItem('lang', l);
+  document.querySelectorAll('.lang-btn').forEach((b,i)=>b.classList.toggle('active',(i===0&&l==='fr')||(i===1&&l==='en')));
+  document.querySelectorAll('[data-i18n]').forEach(el=>{
+    const key=el.dataset.i18n;
+    if(UI[l][key]) el.textContent=UI[l][key];
+  });
+  document.getElementById('player-name').placeholder = l==='en'?'Your nickname...':'Ton pseudo...';
+  updateFirebaseBanner();
+}
+
+// ── FIREBASE ─────────────────────────────────────────────
+function updateFirebaseBanner() {
+  const dot = document.getElementById('firebase-dot');
+  const status = document.getElementById('firebase-status');
+  const banner = document.getElementById('firebase-banner');
+  if (firebaseUrl) {
+    dot.className = 'firebase-dot connected';
+    status.textContent = UI[lang]['global-mode'];
+    banner.className = 'firebase-banner connected';
+  } else {
+    dot.className = 'firebase-dot';
+    status.textContent = UI[lang]['local-mode'];
+    banner.className = 'firebase-banner';
+  }
+}
+
+function openModal() {
+  document.getElementById('firebase-url-input').value = firebaseUrl;
+  document.getElementById('modal-overlay').classList.add('open');
+}
+function closeModal() { document.getElementById('modal-overlay').classList.remove('open'); }
+function saveFirebaseUrl() {
+  const val = document.getElementById('firebase-url-input').value.trim().replace(/\/$/, '');
+  firebaseUrl = val;
+  localStorage.setItem('firebase_url', val);
+  updateFirebaseBanner();
+  closeModal();
+}
+
+async function saveScore(entry) {
+  if (firebaseUrl) {
+    try {
+      await fetch(`${firebaseUrl}/leaderboard.json`, {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify(entry)
+      });
+    } catch(e) { console.warn('Firebase error:', e); }
+  }
+  const local = JSON.parse(localStorage.getItem('challenge_scores') || '[]');
+  local.push(entry);
+  local.sort((a,b)=>b.score-a.score);
+  localStorage.setItem('challenge_scores', JSON.stringify(local.slice(0,100)));
+}
+
+async function getScores() {
+  if (firebaseUrl) {
+    try {
+      const resp = await fetch(`${firebaseUrl}/leaderboard.json`);
+      const data = await resp.json();
+      if (data) {
+        return Object.values(data).sort((a,b)=>b.score-a.score).slice(0,20);
+      }
+    } catch(e) { console.warn('Firebase error:', e); }
+  }
+  return JSON.parse(localStorage.getItem('challenge_scores') || '[]').slice(0,20);
+}
+
+// ── QUIZ LOGIC ───────────────────────────────────────────
+function shuffle(arr) { return [...arr].sort(()=>Math.random()-0.5); }
+
+function startChallenge() {
+  playerName = document.getElementById('player-name').value.trim() || (lang==='en'?'Anonymous':'Anonyme');
+  questions = shuffle(QUESTIONS).slice(0, 20);
+  currentQ = 0; score = 0; correctCount = 0; answered = [];
+  startTime = Date.now();
+  startTimer();
+  showScreen('screen-quiz');
+  renderQuestion();
+}
+
+function startTimer() {
+  clearInterval(timerInterval);
+  timerInterval = setInterval(()=>{
+    elapsedSeconds = Math.floor((Date.now()-startTime)/1000);
+    const m = String(Math.floor(elapsedSeconds/60)).padStart(2,'0');
+    const s = String(elapsedSeconds%60).padStart(2,'0');
+    const el = document.getElementById('timer');
+    el.textContent = `${m}:${s}`;
+    el.className = elapsedSeconds > 120 ? 'timer warning' : 'timer';
+  }, 500);
+}
+
+function renderQuestion() {
+  const q = questions[currentQ];
+  const ui = UI[lang];
+
+  document.getElementById('q-current').textContent = currentQ+1;
+  document.getElementById('q-total').textContent = questions.length;
+  document.getElementById('quiz-progress-fill').style.width = ((currentQ/questions.length)*100)+'%';
+
+  const badge = document.getElementById('topic-badge');
+  badge.textContent = ui.topics[q.topic];
+  badge.className = `topic-badge topic-${q.topic}`;
+
+  document.getElementById('question-text').textContent = lang==='en' ? q.en : q.fr;
+
+  const grid = document.getElementById('options-grid');
+  grid.innerHTML = '';
+  q.options.forEach((opt, i)=>{
+    const btn = document.createElement('button');
+    btn.className = 'option-btn';
+    btn.textContent = opt;
+    btn.onclick = ()=>selectAnswer(i);
+    grid.appendChild(btn);
+  });
+
+  // Score bar
+  const bar = document.getElementById('score-bar');
+  bar.innerHTML = '';
+  for(let i=0;i<questions.length;i++){
+    const dot = document.createElement('div');
+    dot.className = 'score-dot' + (i<answered.length ? (answered[i]?' correct':' wrong') : '');
+    bar.appendChild(dot);
+  }
+}
+
+function selectAnswer(idx) {
+  const q = questions[currentQ];
+  const correct = q.answer;
+  const isCorrect = idx === correct;
+  const btns = document.querySelectorAll('.option-btn');
+
+  btns.forEach(b=>b.disabled=true);
+  btns[correct].className += ' correct';
+  if (!isCorrect) btns[idx].className += ' wrong';
+
+  answered.push(isCorrect);
+  if (isCorrect) correctCount++;
+
+  setTimeout(()=>{
+    currentQ++;
+    if (currentQ < questions.length) {
+      renderQuestion();
+    } else {
+      finishChallenge();
+    }
+  }, 900);
+}
+
+async function finishChallenge() {
+  clearInterval(timerInterval);
+  elapsedSeconds = Math.floor((Date.now()-startTime)/1000);
+  const timeBonus = Math.max(0, (300 - elapsedSeconds) * 2);
+  score = (correctCount * 100) + timeBonus;
+
+  myEntry = { name: playerName, score, correct: correctCount, total: questions.length, time: elapsedSeconds, date: new Date().toISOString() };
+  await saveScore(myEntry);
+
+  const scores = await getScores();
+  const rank = scores.findIndex(s=>s.name===playerName&&s.score===score&&s.time===elapsedSeconds) + 1;
+
+  const ui = UI[lang];
+  document.getElementById('final-score').textContent = score;
+  document.getElementById('stat-correct').textContent = `${correctCount}/${questions.length}`;
+  document.getElementById('stat-time').textContent = `${elapsedSeconds}s`;
+  document.getElementById('stat-rank').textContent = rank ? `#${rank}` : '#?';
+
+  const pct = correctCount / questions.length;
+  document.getElementById('results-icon').textContent = pct===1 ? '🏆' : pct>=0.8 ? '🥈' : pct>=0.6 ? '🥉' : '📚';
+  document.getElementById('results-title').textContent = pct===1 ? ui.perfect : pct>=0.8 ? ui.great : pct>=0.6 ? ui.good : ui.ok;
+
+  showScreen('screen-results');
+}
+
+async function showLeaderboard() {
+  showScreen('screen-leaderboard');
+  const scores = await getScores();
+  const tbody = document.getElementById('lb-body');
+  const ui = UI[lang];
+
+  if (!scores.length) {
+    tbody.innerHTML = `<tr><td colspan="5" class="empty-lb">${ui['no-scores']}</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = scores.map((s,i)=>{
+    const isMe = myEntry && s.name===myEntry.name && s.score===myEntry.score && s.time===myEntry.time;
+    const rankIcon = i===0?'🥇':i===1?'🥈':i===2?'🥉':`#${i+1}`;
+    const rankClass = i===0?'gold':i===1?'silver':i===2?'bronze':'';
+    const min = String(Math.floor(s.time/60)).padStart(2,'0');
+    const sec = String(s.time%60).padStart(2,'0');
+    return `<tr class="${isMe?'lb-my-row':''}">
+      <td><span class="lb-rank ${rankClass}">${rankIcon}</span></td>
+      <td class="lb-name">${s.name}${isMe?' ⬅':''}${ s.score > 1400 ? ' 🔥' : ''}</td>
+      <td class="lb-score">${s.score}</td>
+      <td class="lb-time">${min}:${sec}</td>
+      <td class="lb-correct">${s.correct}/${s.total||20}</td>
+    </tr>`;
+  }).join('');
+}
+
+function retry() {
+  clearInterval(timerInterval);
+  myEntry = null;
+  showScreen('screen-welcome');
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0,0);
+}
+
+// ── INIT ─────────────────────────────────────────────────
+setLang(lang);
+document.getElementById('player-name').addEventListener('keydown', e=>{ if(e.key==='Enter') startChallenge(); });
+</script>
+</body>
+</html>
